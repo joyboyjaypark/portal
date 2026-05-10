@@ -198,7 +198,8 @@
     var sortCol    = null;
     var sortAsc    = true;
     var itemCharts = {};   // col -> Chart instance
-    var TREND_N    = 14;   // 표시 개월 수
+    var FETCH_N    = 37;   // API 조회 개월 수 (Data 탭)
+    var TREND_N    = 25;   // 그래프·비교표 표시 개월 수
 
     // ── KST 유틸 ─────────────────────────────────────────────────
     function toYYYYMM(date) {
@@ -242,7 +243,7 @@
     // ── 페이지 로드 시 자동 조회 (버튼 없음) ─────────────────────
     (function initAndSearch() {
       var endYm   = toYYYYMM(new Date());
-      var startYm = subtractMonths(endYm, 25);
+      var startYm = subtractMonths(endYm, FETCH_N);
       doSearch(startYm, endYm);
     })();
 
