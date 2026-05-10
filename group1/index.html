@@ -83,6 +83,38 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .sort-asc::after  { content: " ▲"; font-size: 10px; opacity: .7; }
     .sort-desc::after { content: " ▼"; font-size: 10px; opacity: .7; }
+
+    /* ── 탭 ── */
+    .tab-bar {
+      display: flex; flex-wrap: wrap; gap: 4px;
+      border-bottom: 2px solid #2c5f9e;
+      margin-bottom: 14px;
+    }
+    .tab-btn {
+      padding: 7px 15px; font-size: 13px; font-weight: 600;
+      color: #2c5f9e; background: #eaf0f9;
+      border: 1px solid #c0d0e8; border-bottom: none;
+      border-radius: 6px 6px 0 0; cursor: pointer;
+      transition: background .15s; white-space: nowrap;
+    }
+    .tab-btn:hover  { background: #d0e0f5; }
+    .tab-btn.active { background: #2c5f9e; color: #fff; border-color: #2c5f9e; }
+
+    /* ── 추이 테이블 ── */
+    .trend-table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+    .trend-table th {
+      background: #2c5f9e; color: #fff; padding: 7px 10px;
+      text-align: center; white-space: nowrap;
+    }
+    .trend-table td { padding: 6px 10px; border-bottom: 1px solid #e8edf3; white-space: nowrap; }
+    .trend-table tbody tr:nth-child(odd)  { background: #f7f9fc; }
+    .trend-table tbody tr:hover { background: #ddeeff; }
+    .trend-table tr.latest-row { font-weight: 700; background: #fffbe6 !important; }
+    .trend-table td:nth-child(1),
+    .trend-table td:nth-child(2) { text-align: center; }
+    .trend-table td:nth-child(3),
+    .trend-table td:nth-child(4),
+    .trend-table td:nth-child(5) { text-align: right; }
   </style>
 </head>
 <body>
@@ -122,62 +154,41 @@
       <span id="lbl-count"></span>
     </div>
 
-    <!-- 분석 섹션: 최근 조회일자 기준 비교 -->
-    <div id="analytics-wrap" style="display:none">
-
-      <!-- 차트 -->
-      <div class="analytics-panel">
-        <div class="analytics-hdr">
-          <h2 id="analytics-title">비교 분석</h2>
-          <span class="unit">단위: 천 달러 (USD thousand) &nbsp;|&nbsp; 빨강=상승 / 파랑=하락</span>
+    <!-- 탭 기반 분석 & 데이터 영역 -->
+    <div id="main-tabs" style="display:none">
+      <div class="tab-bar" id="tab-bar"></div>
+      <div id="tab-panels">
+        <!-- 품목 탭 패널: JS에서 동적 생성 -->
+        <!-- Data 탭 패널 (정적 DOM) -->
+        <div id="panel-data" style="display:none">
+          <div class="tbl-unit">단위: 천 달러 (USD thousand)</div>
+          <div class="table-wrap">
+            <table id="export-table">
+              <thead>
+                <tr id="thead-row">
+                  <th data-col="priodYear">조회년도</th>
+                  <th data-col="priodMon">조회년월</th>
+                  <th data-col="priodDt">조회일자</th>
+                  <th data-col="itemUsdAmt00">전체</th>
+                  <th data-col="itemUsdAmt01">반도체</th>
+                  <th data-col="itemUsdAmt02">철강제품</th>
+                  <th data-col="itemUsdAmt03">승용차</th>
+                  <th data-col="itemUsdAmt04">석유제품</th>
+                  <th data-col="itemUsdAmt05">무선통신기기</th>
+                  <th data-col="itemUsdAmt06">선박</th>
+                  <th data-col="itemUsdAmt07">자동차부품</th>
+                  <th data-col="itemUsdAmt08">컴퓨터주변기기</th>
+                  <th data-col="itemUsdAmt09">정밀기기</th>
+                  <th data-col="itemUsdAmt10">가전제품</th>
+                </tr>
+              </thead>
+              <tbody id="tbl-body">
+                <tr class="no-data"><td colspan="14">데이터가 없습니다.</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <canvas id="change-chart" height="260"></canvas>
       </div>
-
-      <!-- 비교 표 -->
-      <div class="analytics-panel" style="overflow:auto">
-        <table id="cmp-table">
-          <thead>
-            <tr>
-              <th>품목</th>
-              <th id="hdr-curr">최근값</th>
-              <th id="hdr-prev">전월값</th>
-              <th>전월대비</th>
-              <th id="hdr-yoy">전년동월값</th>
-              <th>전년동월대비</th>
-            </tr>
-          </thead>
-          <tbody id="cmp-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 원시 데이터 테이블 -->
-    <div class="tbl-unit">단위: 천 달러 (USD thousand)</div>
-    <div class="table-wrap">
-      <table id="export-table">
-        <thead>
-          <tr id="thead-row">
-            <th data-col="priodYear">조회년도</th>
-            <th data-col="priodMon">조회년월</th>
-            <th data-col="priodDt">조회일자</th>
-            <th data-col="itemUsdAmt00">전체</th>
-            <th data-col="itemUsdAmt01">반도체</th>
-            <th data-col="itemUsdAmt02">철강제품</th>
-            <th data-col="itemUsdAmt03">승용차</th>
-            <th data-col="itemUsdAmt04">석유제품</th>
-            <th data-col="itemUsdAmt05">무선통신기기</th>
-            <th data-col="itemUsdAmt06">선박</th>
-            <th data-col="itemUsdAmt07">자동차부품</th>
-            <th data-col="itemUsdAmt08">컴퓨터주변기기</th>
-            <th data-col="itemUsdAmt09">정밀기기</th>
-            <th data-col="itemUsdAmt10">가전제품</th>
-          </tr>
-        </thead>
-        <tbody id="tbl-body">
-          <tr class="no-data"><td colspan="14">데이터가 없습니다.</td></tr>
-        </tbody>
-      </table>
     </div>
   </main>
 
@@ -210,37 +221,52 @@
       { col: "itemUsdAmt10", label: "가전제품" }
     ];
 
-    var tableData = [];
-    var sortCol = null;
-    var sortAsc = true;
-    var chartInst = null;
+    var tableData  = [];
+    var sortCol    = null;
+    var sortAsc    = true;
+    var itemCharts = {};   // col -> Chart instance
+    var TREND_N    = 14;   // 표시 개월 수
 
-    // 헤더 클릭 이벤트 연결
-    document.querySelectorAll("#thead-row th").forEach(function(th) {
-      th.style.cursor = "pointer";
-      th.addEventListener("click", function() { sortBy(th.dataset.col); });
-    });
-
-    // KST 기준 YYYYMM 반환
+    // ── KST 유틸 ─────────────────────────────────────────────────
     function toYYYYMM(date) {
       var kst = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
       return String(kst.getFullYear()) + String(kst.getMonth() + 1).padStart(2, "0");
     }
-
-    // YYYYMM에서 n개월 이전
     function subtractMonths(yyyymm, n) {
       var y = parseInt(yyyymm.slice(0, 4), 10);
       var m = parseInt(yyyymm.slice(4, 6), 10) - 1;
       var d = new Date(y, m - n, 1);
       return String(d.getFullYear()) + String(d.getMonth() + 1).padStart(2, "0");
     }
-
-    // YYYYMM -> "YYYY년 M월"
     function fmtMon(yyyymm) {
       return yyyymm.slice(0, 4) + "년 " + parseInt(yyyymm.slice(4)) + "월";
     }
 
-    // 페이지 로드 시 자동 날짜 설정 및 조회
+    // ── 공통 계산 ─────────────────────────────────────────────────
+    function getVal(row, col) {
+      if (!row) return null;
+      var v = row[col];
+      if (v == null || v === "") return null;
+      return parseFloat(v.replace(/,/g, ""));
+    }
+    function calcRate(curr, base) {
+      if (curr == null || base == null || base === 0) return null;
+      return (curr - base) / Math.abs(base) * 100;
+    }
+    function fmtNum(v) { return v == null ? "-" : Math.round(v).toLocaleString(); }
+    function fmtRate(v) {
+      if (v == null) return "-";
+      var sign = v >= 0 ? "+" : "";
+      var cls  = v >= 0 ? "pos" : "neg";
+      return "<span class='" + cls + "'>" + sign + v.toFixed(1) + "%</span>";
+    }
+    function nthRowOfMonth(rows, mon, idx) {
+      var monthRows = rows.filter(function(r) { return r.priodMon === mon; });
+      monthRows.sort(function(a, b) { return a.priodDt.localeCompare(b.priodDt); });
+      return monthRows[idx] || null;
+    }
+
+    // ── 자동 날짜 + 초기 조회 ────────────────────────────────────
     (function initAndSearch() {
       var endYm   = toYYYYMM(new Date());
       var startYm = subtractMonths(endYm, 25);
@@ -283,12 +309,8 @@
           return row;
         });
 
-        if (tableData.length > 0) {
-          console.log("[API 첫 번째 행]", JSON.stringify(tableData[0], null, 2));
-        }
-
-        renderTable(tableData);
-        renderAnalytics(tableData);
+        renderTable(tableData);   // Data 탭 원시 테이블
+        renderTabs(tableData);    // 품목별 탭 구성
         setStatus("조회 완료 — 시작: " + strt + "  종료: " + end,
                   "총 " + tableData.length.toLocaleString() + "건");
       } catch (e) {
@@ -299,16 +321,256 @@
       }
     }
 
+    // ── 탭 전체 구성 ─────────────────────────────────────────────
+    function renderTabs(rows) {
+      var wrap = document.getElementById("main-tabs");
+      if (!rows.length) { wrap.style.display = "none"; return; }
+
+      // 최신 행 & 순번 파악
+      var latestRow = null;
+      rows.forEach(function(row) {
+        if (!latestRow ||
+            row.priodMon > latestRow.priodMon ||
+            (row.priodMon === latestRow.priodMon && row.priodDt > latestRow.priodDt)) {
+          latestRow = row;
+        }
+      });
+      var latestMon     = latestRow.priodMon;
+      var latestDt      = latestRow.priodDt;
+      var latestMonRows = rows.filter(function(r) { return r.priodMon === latestMon; });
+      latestMonRows.sort(function(a, b) { return a.priodDt.localeCompare(b.priodDt); });
+      var latestIdx = latestMonRows.findIndex(function(r) { return r.priodDt === latestDt; });
+      if (latestIdx < 0) latestIdx = latestMonRows.length - 1;
+
+      // 표시할 TREND_N 개월 목록 (최신월 포함, 오름차순)
+      var months = [];
+      for (var i = TREND_N - 1; i >= 0; i--) {
+        months.push(subtractMonths(latestMon, i));
+      }
+
+      // 행 캐시 (전월·전년동월용 추가 월도 포함)
+      var rowCache = {};
+      function cachedRow(mon) {
+        if (!(mon in rowCache)) {
+          rowCache[mon] = nthRowOfMonth(rows, mon, latestIdx);
+        }
+        return rowCache[mon];
+      }
+
+      // 기존 차트 파괴
+      Object.keys(itemCharts).forEach(function(col) {
+        if (itemCharts[col]) { itemCharts[col].destroy(); }
+      });
+      itemCharts = {};
+
+      // ── 탭 버튼 ──────────────────────────────────────────────
+      var tabBar = document.getElementById("tab-bar");
+      tabBar.innerHTML = "";
+      ITEMS.forEach(function(item, i) {
+        var btn = document.createElement("span");
+        btn.className    = "tab-btn" + (i === 0 ? " active" : "");
+        btn.textContent  = item.label;
+        btn.dataset.tabid = item.col;
+        btn.addEventListener("click", function() {
+          switchTab(item.col, rows, months, cachedRow, latestMon);
+        });
+        tabBar.appendChild(btn);
+      });
+      var dataBtn = document.createElement("span");
+      dataBtn.className    = "tab-btn";
+      dataBtn.textContent  = "Data";
+      dataBtn.dataset.tabid = "data";
+      dataBtn.addEventListener("click", function() {
+        switchTab("data", rows, months, cachedRow, latestMon);
+      });
+      tabBar.appendChild(dataBtn);
+
+      // ── 품목 패널 동적 생성 (Data 패널 앞에 삽입) ─────────────
+      var panelsDiv = document.getElementById("tab-panels");
+      Array.from(panelsDiv.querySelectorAll(".item-panel")).forEach(function(el) { el.remove(); });
+      var dataPanel = document.getElementById("panel-data");
+
+      ITEMS.forEach(function(item, i) {
+        var panel = document.createElement("div");
+        panel.id        = "panel-" + item.col;
+        panel.className = "item-panel";
+        panel.style.display = (i === 0) ? "block" : "none";
+        panel.innerHTML =
+          '<div class="analytics-panel">' +
+            '<div class="analytics-hdr">' +
+              '<h2>' + item.label + ' &mdash; ' + TREND_N + '개월 추이 분석</h2>' +
+              '<span class="unit">단위: 천 달러 (USD thousand) &nbsp;|&nbsp; 빨강=상승 / 파랑=하락</span>' +
+            '</div>' +
+            '<canvas id="chart-' + item.col + '" height="200"></canvas>' +
+          '</div>' +
+          '<div class="analytics-panel" style="overflow:auto;margin-top:0">' +
+            '<table class="trend-table" id="tbl-' + item.col + '">' +
+              '<thead><tr>' +
+                '<th>월</th><th>기간</th>' +
+                '<th>금액 (천달러)</th>' +
+                '<th>전월동기대비</th>' +
+                '<th>전년동기대비</th>' +
+              '</tr></thead>' +
+              '<tbody></tbody>' +
+            '</table>' +
+          '</div>';
+        panelsDiv.insertBefore(panel, dataPanel);
+      });
+
+      // 첫 번째 품목 탭 렌더
+      renderItemPanel(ITEMS[0], months, cachedRow, latestMon);
+      wrap.style.display = "block";
+    }
+
+    // ── 탭 전환 ──────────────────────────────────────────────────
+    function switchTab(tabId, rows, months, cachedRow, latestMon) {
+      document.querySelectorAll("#tab-bar .tab-btn").forEach(function(btn) {
+        btn.classList.toggle("active", btn.dataset.tabid === tabId);
+      });
+      document.querySelectorAll("#tab-panels .item-panel").forEach(function(p) {
+        p.style.display = (p.id === "panel-" + tabId) ? "block" : "none";
+      });
+      document.getElementById("panel-data").style.display = (tabId === "data") ? "block" : "none";
+
+      // 품목 탭이고 미렌더 시 차트+테이블 생성
+      var item = ITEMS.find(function(it) { return it.col === tabId; });
+      if (item && !itemCharts[tabId]) {
+        renderItemPanel(item, months, cachedRow, latestMon);
+      }
+    }
+
+    // ── 품목 패널 렌더 (혼합 차트 + 추이 테이블) ─────────────────
+    function renderItemPanel(item, months, cachedRow, latestMon) {
+      var col = item.col;
+
+      // 14개월 추이 데이터 계산
+      var trend = months.map(function(mon) {
+        var row     = cachedRow(mon);
+        var prevRow = cachedRow(subtractMonths(mon, 1));
+        var yoyRow  = cachedRow(subtractMonths(mon, 12));
+        var val     = getVal(row, col);
+        return {
+          mon:     mon,
+          priodDt: row ? row.priodDt : null,
+          val:     val,
+          momRate: calcRate(val, getVal(prevRow, col)),
+          yoyRate: calcRate(val, getVal(yoyRow,  col))
+        };
+      });
+
+      var labels  = trend.map(function(d) { return fmtMon(d.mon); });
+      var valData = trend.map(function(d) { return d.val; });
+      var momData = trend.map(function(d) { return d.momRate != null ? parseFloat(d.momRate.toFixed(2)) : null; });
+      var yoyData = trend.map(function(d) { return d.yoyRate != null ? parseFloat(d.yoyRate.toFixed(2)) : null; });
+
+      // 혼합 차트: 막대=금액(좌축), 선=증감률(우축)
+      var ctx = document.getElementById("chart-" + col).getContext("2d");
+      itemCharts[col] = new Chart(ctx, {
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              type: "bar",
+              label: "금액 (천달러)",
+              data: valData,
+              backgroundColor: "rgba(44,95,158,0.22)",
+              borderColor:     "rgba(44,95,158,0.55)",
+              borderWidth: 1,
+              yAxisID: "yVal",
+              order: 3
+            },
+            {
+              type: "line",
+              label: "전월동기대비 (%)",
+              data: momData,
+              borderColor:     "rgba(26,111,196,1)",
+              backgroundColor: "rgba(26,111,196,0.08)",
+              pointRadius: 4, pointHoverRadius: 6,
+              tension: 0.3,
+              yAxisID: "yRate",
+              order: 1
+            },
+            {
+              type: "line",
+              label: "전년동기대비 (%)",
+              data: yoyData,
+              borderColor:     "rgba(192,57,43,1)",
+              backgroundColor: "rgba(192,57,43,0.08)",
+              pointRadius: 4, pointHoverRadius: 6,
+              tension: 0.3,
+              yAxisID: "yRate",
+              order: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { position: "top" },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  var v = ctx.parsed.y;
+                  if (v == null) return ctx.dataset.label + ": N/A";
+                  if (ctx.datasetIndex === 0) {
+                    return ctx.dataset.label + ": " + Math.round(v).toLocaleString();
+                  }
+                  return ctx.dataset.label + ": " + (v > 0 ? "+" : "") + v.toFixed(1) + "%";
+                }
+              }
+            }
+          },
+          scales: {
+            yVal: {
+              type: "linear", position: "left",
+              grid: { color: "rgba(0,0,0,0.05)" },
+              ticks: {
+                callback: function(v) {
+                  if (Math.abs(v) >= 1000000) return (v / 1000000).toFixed(1) + "M";
+                  if (Math.abs(v) >= 1000)    return (v / 1000).toFixed(0) + "k";
+                  return v;
+                }
+              },
+              title: { display: true, text: "금액 (천달러)", font: { size: 11 } }
+            },
+            yRate: {
+              type: "linear", position: "right",
+              grid: { drawOnChartArea: false },
+              ticks: { callback: function(v) { return (v > 0 ? "+" : "") + v + "%"; } },
+              title: { display: true, text: "증감률 (%)", font: { size: 11 } }
+            },
+            x: { grid: { color: "rgba(0,0,0,0.04)" } }
+          }
+        }
+      });
+
+      // 추이 테이블 렌더
+      var tbody = document.querySelector("#tbl-" + col + " tbody");
+      tbody.innerHTML = trend.map(function(d) {
+        var isLatest = d.mon === latestMon;
+        return "<tr" + (isLatest ? ' class="latest-row"' : "") + ">" +
+          "<td>" + fmtMon(d.mon) + "</td>" +
+          "<td>" + (d.priodDt || "-") + "</td>" +
+          "<td>" + fmtNum(d.val) + "</td>" +
+          "<td>" + fmtRate(d.momRate) + "</td>" +
+          "<td>" + fmtRate(d.yoyRate) + "</td>" +
+          "</tr>";
+      }).join("");
+    }
+
+    // ── Data 탭: 원시 데이터 테이블 ─────────────────────────────
     function renderTable(rows) {
       var tbody = document.getElementById("tbl-body");
+      if (!tbody) return;
       if (!rows.length) {
         tbody.innerHTML = '<tr class="no-data"><td colspan="14">조회된 데이터가 없습니다.</td></tr>';
         return;
       }
       tbody.innerHTML = rows.map(function(row) {
         return "<tr>" + COLS.map(function(col) {
-          var v = row[col] != null ? row[col] : "";
-          var cls = CENTER_COLS.has(col) ? ' class="center"' : "";
+          var v       = row[col] != null ? row[col] : "";
+          var cls     = CENTER_COLS.has(col) ? ' class="center"' : "";
           var display = v;
           if (col.startsWith("itemUsdAmt") && v !== "") {
             var num = parseFloat(v.replace(/,/g, ""));
@@ -319,158 +581,17 @@
       }).join("");
     }
 
-    function renderAnalytics(rows) {
-      var wrap = document.getElementById("analytics-wrap");
-      if (!rows.length) { wrap.style.display = "none"; return; }
-
-      // 가장 최근 조회일자 행 찾기
-      var latestRow = null;
-      rows.forEach(function(row) {
-        if (!latestRow ||
-            row.priodMon > latestRow.priodMon ||
-            (row.priodMon === latestRow.priodMon && row.priodDt > latestRow.priodDt)) {
-          latestRow = row;
-        }
-      });
-
-      var latestMon = latestRow.priodMon;
-      var latestDt  = latestRow.priodDt;
-      var prevMon   = subtractMonths(latestMon, 1);
-      var yoyMon    = subtractMonths(latestMon, 12);
-
-      // 최신행의 순번(1번째=1~10, 2번째=1~20, 3번째=말일)을 구하고,
-      // 대상 월에서 같은 순번의 행을 가져옴 (말일 날짜가 달라도 대응)
-      function nthRowOfMonth(mon, nthIndex) {
-        var monthRows = rows.filter(function(r) { return r.priodMon === mon; });
-        // priodDt 오름차순 정렬 (1~10 < 1~20 < 1~28/30/31)
-        monthRows.sort(function(a, b) { return a.priodDt.localeCompare(b.priodDt); });
-        return monthRows[nthIndex] || null;
-      }
-
-      // 최신월에서 latestRow의 순번 파악
-      var latestMonRows = rows.filter(function(r) { return r.priodMon === latestMon; });
-      latestMonRows.sort(function(a, b) { return a.priodDt.localeCompare(b.priodDt); });
-      var latestIdx = latestMonRows.findIndex(function(r) { return r.priodDt === latestDt; });
-      if (latestIdx < 0) latestIdx = latestMonRows.length - 1;
-
-      var prevRow = nthRowOfMonth(prevMon, latestIdx);
-      var yoyRow  = nthRowOfMonth(yoyMon,  latestIdx);
-
-      function getVal(row, col) {
-        if (!row) return null;
-        var v = row[col];
-        if (v == null || v === "") return null;
-        return parseFloat(v.replace(/,/g, ""));
-      }
-      function calcRate(curr, base) {
-        if (curr == null || base == null || base === 0) return null;
-        return (curr - base) / Math.abs(base) * 100;
-      }
-      function fmtNum(v) { return v == null ? "-" : Math.round(v).toLocaleString(); }
-      function fmtRate(v) {
-        if (v == null) return "-";
-        var sign = v >= 0 ? "+" : "";
-        var cls  = v >= 0 ? "pos" : "neg";
-        return "<span class='" + cls + "'>" + sign + v.toFixed(1) + "%</span>";
-      }
-
-      // 제목 및 헤더 갱신 (각 월의 실제 priodDt 사용)
-      var prevDt = prevRow ? prevRow.priodDt : "-";
-      var yoyDt  = yoyRow  ? yoyRow.priodDt  : "-";
-      document.getElementById("analytics-title").textContent =
-        fmtMon(latestMon) + " " + latestDt + " 기준 비교 분석";
-      document.getElementById("hdr-curr").textContent =
-        fmtMon(latestMon) + " (" + latestDt + ")";
-      document.getElementById("hdr-prev").textContent =
-        fmtMon(prevMon) + " (" + prevDt + ")";
-      document.getElementById("hdr-yoy").textContent =
-        fmtMon(yoyMon) + " (" + yoyDt + ")";
-
-      // 증감률 계산
-      var momRates = ITEMS.map(function(item) {
-        return calcRate(getVal(latestRow, item.col), getVal(prevRow, item.col));
-      });
-      var yoyRates = ITEMS.map(function(item) {
-        return calcRate(getVal(latestRow, item.col), getVal(yoyRow, item.col));
-      });
-      var labels = ITEMS.map(function(i) { return i.label; });
-
-      // 차트 렌더링
-      var ctx = document.getElementById("change-chart").getContext("2d");
-      if (chartInst) { chartInst.destroy(); chartInst = null; }
-      chartInst = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: "전월대비 (%)",
-              data: momRates.map(function(v) { return v != null ? parseFloat(v.toFixed(2)) : null; }),
-              backgroundColor: "rgba(26,111,196,0.75)",
-              borderColor:     "rgba(26,111,196,1)",
-              borderWidth: 1, borderRadius: 3
-            },
-            {
-              label: "전년동월대비 (%)",
-              data: yoyRates.map(function(v) { return v != null ? parseFloat(v.toFixed(2)) : null; }),
-              backgroundColor: "rgba(230,126,34,0.75)",
-              borderColor:     "rgba(230,126,34,1)",
-              borderWidth: 1, borderRadius: 3
-            }
-          ]
-        },
-        options: {
-          indexAxis: "y",
-          responsive: true,
-          plugins: {
-            legend: { position: "top" },
-            tooltip: {
-              callbacks: {
-                label: function(ctx) {
-                  var v = ctx.parsed.x;
-                  if (v == null) return ctx.dataset.label + ": N/A";
-                  return ctx.dataset.label + ": " + (v > 0 ? "+" : "") + v.toFixed(1) + "%";
-                }
-              }
-            }
-          },
-          scales: {
-            x: {
-              grid: { color: "rgba(0,0,0,0.06)" },
-              ticks: {
-                callback: function(v) { return (v > 0 ? "+" : "") + v + "%"; }
-              }
-            },
-            y: { grid: { display: false } }
-          }
-        }
-      });
-
-      // 비교 표 렌더링
-      document.getElementById("cmp-tbody").innerHTML = ITEMS.map(function(item) {
-        var curr = getVal(latestRow, item.col);
-        var prev = getVal(prevRow,   item.col);
-        var yoy  = getVal(yoyRow,    item.col);
-        return "<tr>" +
-          "<td>" + item.label + "</td>" +
-          "<td>" + fmtNum(curr) + "</td>" +
-          "<td>" + fmtNum(prev) + "</td>" +
-          "<td>" + fmtRate(calcRate(curr, prev)) + "</td>" +
-          "<td>" + fmtNum(yoy)  + "</td>" +
-          "<td>" + fmtRate(calcRate(curr, yoy))  + "</td>" +
-          "</tr>";
-      }).join("");
-
-      wrap.style.display = "block";
-    }
+    // Data 탭 헤더 클릭 정렬
+    document.querySelectorAll("#thead-row th").forEach(function(th) {
+      th.style.cursor = "pointer";
+      th.addEventListener("click", function() { sortBy(th.dataset.col); });
+    });
 
     function sortBy(col) {
       if (sortCol === col) { sortAsc = !sortAsc; } else { sortCol = col; sortAsc = true; }
       document.querySelectorAll("#thead-row th").forEach(function(th) {
         th.classList.remove("sort-asc", "sort-desc");
-        if (th.dataset.col === col) {
-          th.classList.add(sortAsc ? "sort-asc" : "sort-desc");
-        }
+        if (th.dataset.col === col) th.classList.add(sortAsc ? "sort-asc" : "sort-desc");
       });
       var sorted = tableData.slice().sort(function(a, b) {
         var va = (a[col] || "").replace(/,/g, "");
@@ -484,11 +605,11 @@
 
     function setLoading(on) {
       var btn = document.getElementById("btn-search");
-      btn.disabled = on;
+      btn.disabled    = on;
       btn.textContent = on ? "조회 중..." : "조 회";
     }
     function setStatus(msg, count) {
-      document.getElementById("lbl-status").innerHTML = msg;
+      document.getElementById("lbl-status").innerHTML  = msg;
       document.getElementById("lbl-count").textContent = count;
     }
   </script>
