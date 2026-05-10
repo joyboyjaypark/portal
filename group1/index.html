@@ -7,24 +7,6 @@
   <link rel="stylesheet" href="../styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
-    .input-panel {
-      background: #dce3ec; border-radius: 8px; padding: 12px 16px;
-      margin-bottom: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
-    }
-    .input-panel label { font-size: 13px; color: #333; white-space: nowrap; }
-    .input-panel input {
-      font-size: 13px; width: 100px; padding: 5px 8px;
-      border: 1px solid #b0bec5; border-radius: 4px; outline: none;
-    }
-    .input-panel input:focus { border-color: #1a6fc4; }
-    .input-panel .hint { font-size: 11px; color: #666; flex-basis: 100%; margin-top: 2px; }
-    #btn-search {
-      background: #1a6fc4; color: #fff; border: none; border-radius: 4px;
-      padding: 6px 18px; font-size: 13px; font-weight: bold;
-      cursor: pointer; transition: background .15s;
-    }
-    #btn-search:hover:not(:disabled) { background: #145fa8; }
-    #btn-search:disabled { background: #7ea8d4; cursor: default; }
     .status-bar {
       display: flex; justify-content: space-between; font-size: 12px;
       color: #555; background: #c8d5e3; border-radius: 6px;
@@ -140,17 +122,8 @@
       <p style="margin:0;color:#666;font-size:13px">데이터 출처: data.go.kr — 품목별월별수출실적현황</p>
     </header>
 
-    <div class="input-panel">
-      <label for="inp-start">시작 연월 (YYYYMM):</label>
-      <input id="inp-start" type="text" maxlength="6" placeholder="202501" value="202504">
-      <label for="inp-end">종료 연월 (YYYYMM):</label>
-      <input id="inp-end" type="text" maxlength="6" placeholder="202604" value="202604">
-      <button id="btn-search" onclick="doSearch()">조 회</button>
-      <span class="hint">※ 연월은 6자리 숫자로 입력하세요 (예: 202501)</span>
-    </div>
-
     <div class="status-bar">
-      <span id="lbl-status">조회 조건을 입력하고 [조회] 버튼을 누르세요.</span>
+      <span id="lbl-status">페이지 로드 중...</span>
       <span id="lbl-count"></span>
     </div>
 
@@ -266,21 +239,14 @@
       return monthRows[idx] || null;
     }
 
-    // ── 자동 날짜 + 초기 조회 ────────────────────────────────────
+    // ── 페이지 로드 시 자동 조회 (버튼 없음) ─────────────────────
     (function initAndSearch() {
       var endYm   = toYYYYMM(new Date());
       var startYm = subtractMonths(endYm, 25);
-      document.getElementById("inp-start").value = startYm;
-      document.getElementById("inp-end").value   = endYm;
-      doSearch();
+      doSearch(startYm, endYm);
     })();
 
-    async function doSearch() {
-      var strt = document.getElementById("inp-start").value.trim();
-      var end  = document.getElementById("inp-end").value.trim();
-      if (!/^\d{6}$/.test(strt)) { alert("시작 연월을 6자리 숫자로 입력하세요.\n예) 202504"); return; }
-      if (!/^\d{6}$/.test(end))  { alert("종료 연월을 6자리 숫자로 입력하세요.\n예) 202604"); return; }
-      if (strt > end)             { alert("시작 연월이 종료 연월보다 클 수 없습니다."); return; }
+    async function doSearch(strt, end) {
 
       setLoading(true);
       setStatus('<span class="spinner"></span>데이터를 불러오는 중입니다...', "");
@@ -604,9 +570,7 @@
     }
 
     function setLoading(on) {
-      var btn = document.getElementById("btn-search");
-      btn.disabled    = on;
-      btn.textContent = on ? "조회 중..." : "조 회";
+      // 버튼 없음 — 상태표시줄만 사용
     }
     function setStatus(msg, count) {
       document.getElementById("lbl-status").innerHTML  = msg;
