@@ -79,9 +79,9 @@
     }
     #detail-box h3 { margin: 0 0 14px; font-size: 15px; color: #1a3c5e; }
     #detail-content {
-      flex: 1; overflow: auto; font-size: 12.5px; line-height: 1.7;
-      border: 1px solid #dde; border-radius: 6px; padding: 12px;
-      background: #f8fafc; white-space: pre-wrap; font-family: monospace;
+      flex: 1; overflow: auto; font-size: 13.5px; line-height: 2;
+      border: 1px solid #dde; border-radius: 6px; padding: 14px 16px;
+      background: #f8fafc; white-space: pre-wrap;
     }
     #detail-close {
       align-self: flex-end; margin-top: 14px;
@@ -312,9 +312,14 @@
       openDetailItem(allResults[idx]);
     }
     function openDetailItem(item) {
-      document.getElementById("detail-title").textContent = item.title || "상세 정보";
+      var keywords = item.keywords || "";
+      document.getElementById("detail-title").textContent =
+        (item.title || "") + " — 키워드";
+      // 키워드를 쉼표·공백 기준으로 줄바꿈해서 보기 좋게 표시
+      var list = keywords.split(/[,，\s]+/).map(function(k){ return k.trim(); })
+                         .filter(function(k){ return k.length > 0; });
       document.getElementById("detail-content").textContent =
-        JSON.stringify(item, null, 2);
+        list.length ? list.join("\n") : "(키워드 없음)";
       document.getElementById("detail-overlay").classList.add("show");
     }
     function closeDetailBtn() {
