@@ -277,8 +277,8 @@
           return row;
         });
 
-        renderTable(tableData);   // Data 탭 원시 테이블
-        renderTabs(tableData);    // 품목별 탭 구성
+        renderTabs(tableData);    // 품목별 탭 구성 (latestInfo 설정 포함)
+        renderTable(tableData);   // Data 탭 원시 테이블 (latestInfo 필요)
         setStatus("조회 완료 — 시작: " + strt + "  종료: " + end,
                   "총 " + tableData.length.toLocaleString() + "건");
       } catch (e) {
