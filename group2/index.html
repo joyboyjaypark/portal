@@ -11,13 +11,11 @@
       margin-bottom: 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
     }
     .input-panel label { font-size: 13px; color: #333; white-space: nowrap; }
-    .input-panel input[type="text"],
     .input-panel input[type="date"],
     .input-panel input[type="number"] {
       font-size: 13px; padding: 5px 8px;
       border: 1px solid #b0bec5; border-radius: 4px; outline: none;
     }
-    .input-panel input[type="text"]   { width: 340px; }
     .input-panel input[type="date"]   { width: 140px; }
     .input-panel input[type="number"] { width: 70px; }
     .input-panel input:focus { border-color: #1a6fc4; }
@@ -119,9 +117,6 @@
     </header>
 
     <div class="input-panel">
-      <label for="inp-key">서비스키 (Decoding):</label>
-      <input id="inp-key" type="text" placeholder="Decoding된 서비스키 입력">
-
       <label for="inp-start">시작일:</label>
       <input id="inp-start" type="date">
 
@@ -134,12 +129,11 @@
 
     <div class="btn-row">
       <button id="btn-search" class="btn" onclick="onSearch()">조 회</button>
-      <button id="btn-csv"    class="btn btn-secondary" onclick="onSaveCsv()">CSV 저장</button>
       <button id="btn-clear"  class="btn btn-danger"    onclick="onClear()">결과 지우기</button>
     </div>
 
     <div class="status-bar">
-      <span id="lbl-status">서비스키와 기간을 입력하고 [조회]를 누르세요.</span>
+      <span id="lbl-status">기간을 선택하고 [조회]를 누르세요.</span>
       <span id="lbl-count"></span>
     </div>
 
@@ -175,6 +169,8 @@
 
   <script>
     var BASE_URL = "https://api.odcloud.kr/api/15077093/v1/open-data-list";
+    var SERVICE_KEY = "Nv0jBnCHJXCT20iu910K/IGnF556Vt2w06icWR2uj66dF73AiTNBXaM7bIS9Nu9" +
+                      "C0cmB7sGVgpnbCiK01Qkgeg==";
     var COLS = ["created_at","title","org_nm","dept_nm","api_type","data_format","category_nm","keywords"];
 
     var allResults = [];
@@ -212,12 +208,11 @@
 
     async function onSearch() {
       if (isLoading) return;
-      var key     = document.getElementById("inp-key").value.trim();
+      var key     = SERVICE_KEY;
       var start   = document.getElementById("inp-start").value.trim();
       var end     = document.getElementById("inp-end").value.trim();
       var perPage = parseInt(document.getElementById("inp-per").value, 10) || 100;
 
-      if (!key)   { alert("서비스키를 입력하세요."); return; }
       if (!start) { alert("시작일을 입력하세요."); return; }
       if (!end)   { alert("종료일을 입력하세요."); return; }
       if (start > end) { alert("시작일이 종료일보다 늦을 수 없습니다."); return; }
@@ -337,25 +332,7 @@
       });
       document.getElementById("tbl-body").innerHTML =
         '<tr class="no-data"><td colspan="8">데이터가 없습니다.</td></tr>';
-      setStatus("서비스키와 기간을 입력하고 [조회]를 누르세요.", "");
-    }
-
-    function onSaveCsv() {
-      if (!allResults.length) { alert("저장할 결과가 없습니다."); return; }
-      var keys = Object.keys(allResults[0]);
-      var lines = [keys.join(",")];
-      allResults.forEach(function(r) {
-        lines.push(keys.map(function(k) {
-          var v = String(r[k] != null ? r[k] : "").replace(/"/g, '""');
-          return '"' + v + '"';
-        }).join(","));
-      });
-      var blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
-      var a    = document.createElement("a");
-      a.href   = URL.createObjectURL(blob);
-      a.download = "open_data_list.csv";
-      a.click();
-      URL.revokeObjectURL(a.href);
+      setStatus("기간을 선택하고 [조회]를 누르세요.", "");
     }
 
     function setLoading(on) {
