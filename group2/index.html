@@ -8,18 +8,22 @@
   <style>
     .input-panel {
       background: #dce3ec; border-radius: 8px; padding: 12px 16px;
-      margin-bottom: 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+      margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px;
     }
-    .input-panel label { font-size: 13px; color: #333; white-space: nowrap; }
+    .input-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .input-panel label { font-size: 13px; color: #333; white-space: nowrap; transition: opacity .2s; }
     .input-panel input[type="date"],
     .input-panel input[type="number"] {
       font-size: 13px; padding: 5px 8px;
-      border: 1px solid #b0bec5; border-radius: 4px; outline: none;
+      border: 1px solid #b0bec5; border-radius: 4px; outline: none; transition: opacity .2s;
     }
     .input-panel input[type="date"]   { width: 140px; }
     .input-panel input[type="number"] { width: 70px; }
-    .input-panel input[type="text"]   { width: 200px; }
+    .input-panel input[type="text"]   { width: 300px; }
     .input-panel input:focus { border-color: #1a6fc4; }
+    .date-row.dimmed label,
+    .date-row.dimmed input { opacity: 0.35; pointer-events: none; }
+    .title-hint { font-size: 12px; color: #1a6fc4; font-style: italic; }
 
     .btn-row { display: flex; gap: 8px; margin-bottom: 12px; }
     .btn {
@@ -118,17 +122,19 @@
     </header>
 
     <div class="input-panel">
-      <label for="inp-start">시작일:</label>
-      <input id="inp-start" type="date">
-
-      <label for="inp-end">종료일:</label>
-      <input id="inp-end" type="date">
-
-      <label for="inp-per">페이지당 건수:</label>
-      <input id="inp-per" type="number" value="100" min="10" max="500" step="10">
-
-      <label for="inp-title">서비스명:</label>
-      <input id="inp-title" type="text" placeholder="(빈칸=전체)" title="서비스명으로 필터링">
+      <div class="input-row">
+        <label for="inp-title">서비스명:</label>
+        <input id="inp-title" type="text" placeholder="(빈칸이면 날짜 기준 조회)">
+        <span class="title-hint" id="title-hint" style="display:none">날짜 범위 무시 — 서비스명으로만 조회합니다.</span>
+      </div>
+      <div class="input-row date-row" id="date-row">
+        <label for="inp-start">시작일:</label>
+        <input id="inp-start" type="date">
+        <label for="inp-end">종료일:</label>
+        <input id="inp-end" type="date">
+        <label for="inp-per">페이지당 건수:</label>
+        <input id="inp-per" type="number" value="100" min="10" max="500" step="10">
+      </div>
     </div>
 
     <div class="btn-row">
@@ -183,9 +189,12 @@
     var sortAsc    = true;
     var titleFilter = "";
 
-    // 서비스명 실시간 필터
+    // 서비스명 입력 → 날짜 행 dimming + 실시간 클라이언트 필터
     document.addEventListener("DOMContentLoaded", function() {
       document.getElementById("inp-title").addEventListener("input", function() {
+        var hasTitle = this.value.trim().length > 0;
+        document.getElementById("date-row").classList.toggle("dimmed", hasTitle);
+        document.getElementById("title-hint").style.display = hasTitle ? "" : "none";
         titleFilter = this.value.trim().toLowerCase();
         applyTitleFilter();
       });
@@ -232,14 +241,18 @@
 
     async function onSearch() {
       if (isLoading) return;
-      var key     = SERVICE_KEY;
-      var start   = document.getElementById("inp-start").value.trim();
-      var end     = document.getElementById("inp-end").value.trim();
-      var perPage = parseInt(document.getElementById("inp-per").value, 10) || 100;
+      var key      = SERVICE_KEY;
+      var titleKw  = document.getElementById("inp-title").value.trim();
+      var byTitle  = titleKw.length > 0;
+      var start    = document.getElementById("inp-start").value.trim();
+      var end      = document.getElementById("inp-end").value.trim();
+      var perPage  = parseInt(document.getElementById("inp-per").value, 10) || 100;
 
-      if (!start) { alert("시작일을 입력하세요."); return; }
-      if (!end)   { alert("종료일을 입력하세요."); return; }
-      if (start > end) { alert("시작일이 종료일보다 늦을 수 없습니다."); return; }
+      if (!byTitle) {
+        if (!start) { alert("시작일을 입력하세요."); return; }
+        if (!end)   { alert("종료일을 입력하세요."); return; }
+        if (start > end) { alert("시작일이 종료일보다 늦을 수 없습니다."); return; }
+      }
 
       onClear();
       isLoading = true;
@@ -252,16 +265,18 @@
           setStatus('<span class="spinner"></span>조회 중... page=' + page +
                     (total != null ? " / 총 " + total + "건" : ""), "");
 
-          var titleKw = document.getElementById("inp-title").value.trim();
           var params = new URLSearchParams({
             page:       page,
             perPage:    perPage,
             returnType: "JSON",
             serviceKey: key
           });
-          params.append("cond[created_at::GTE]", start);
-          params.append("cond[created_at::LTE]", end);
-          if (titleKw) params.append("cond[title::LIKE]", titleKw);
+          if (byTitle) {
+            params.append("cond[title::LIKE]", titleKw);
+          } else {
+            params.append("cond[created_at::GTE]", start);
+            params.append("cond[created_at::LTE]", end);
+          }
 
           var res  = await fetch(BASE_URL + "?" + params.toString(), {
             headers: {
@@ -282,10 +297,10 @@
           if (!items.length || allResults.length >= total) break;
           page++;
         }
-        var titleKwFinal = document.getElementById("inp-title").value.trim();
-        var statusExtra = titleKwFinal ? "  서비스명: \"" + titleKwFinal + "\"" : "";
-        setStatus("완료: 총 " + total + "건 중 " + allResults.length + "건 표시  (기간: " + start + " ~ " + end + ")" + statusExtra,
-                  allResults.length.toLocaleString() + "건");
+        var statusMsg = byTitle
+          ? "완료: 총 " + total + "건 중 " + allResults.length + "건 표시  (서비스명: \"" + titleKw + "\")"
+          : "완료: 총 " + total + "건 중 " + allResults.length + "건 표시  (기간: " + start + " ~ " + end + ")";
+        setStatus(statusMsg, allResults.length.toLocaleString() + "건");
         applyTitleFilter();
       } catch (e) {
         setStatus("오류가 발생했습니다.", "");
@@ -362,6 +377,8 @@
       allResults = [];
       titleFilter = "";
       document.getElementById("inp-title").value = "";
+      document.getElementById("date-row").classList.remove("dimmed");
+      document.getElementById("title-hint").style.display = "none";
       sortCol = null; sortAsc = true;
       document.querySelectorAll("#result-table thead th").forEach(function(t) {
         t.classList.remove("sort-asc","sort-desc");
