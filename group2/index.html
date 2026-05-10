@@ -18,6 +18,7 @@
     }
     .input-panel input[type="date"]   { width: 140px; }
     .input-panel input[type="number"] { width: 70px; }
+    .input-panel input[type="text"]   { width: 200px; }
     .input-panel input:focus { border-color: #1a6fc4; }
 
     .btn-row { display: flex; gap: 8px; margin-bottom: 12px; }
@@ -125,6 +126,9 @@
 
       <label for="inp-per">페이지당 건수:</label>
       <input id="inp-per" type="number" value="100" min="10" max="500" step="10">
+
+      <label for="inp-title">서비스명:</label>
+      <input id="inp-title" type="text" placeholder="(빈칸=전체)" title="서비스명으로 필터링">
     </div>
 
     <div class="btn-row">
@@ -177,6 +181,26 @@
     var isLoading  = false;
     var sortCol    = null;
     var sortAsc    = true;
+    var titleFilter = "";
+
+    // 서비스명 실시간 필터
+    document.addEventListener("DOMContentLoaded", function() {
+      document.getElementById("inp-title").addEventListener("input", function() {
+        titleFilter = this.value.trim().toLowerCase();
+        applyTitleFilter();
+      });
+    });
+
+    function applyTitleFilter() {
+      var filtered = titleFilter
+        ? allResults.filter(function(it) {
+            return String(it.title || "").toLowerCase().indexOf(titleFilter) !== -1;
+          })
+        : allResults;
+      renderRows(filtered);
+      document.getElementById("lbl-count").textContent =
+        (titleFilter ? filtered.length + " / " : "") + allResults.length + "건";
+    }
 
     // 기본 날짜 설정 (오늘 ~ 30일 전)
     (function initDates() {
@@ -228,6 +252,7 @@
           setStatus('<span class="spinner"></span>조회 중... page=' + page +
                     (total != null ? " / 총 " + total + "건" : ""), "");
 
+          var titleKw = document.getElementById("inp-title").value.trim();
           var params = new URLSearchParams({
             page:       page,
             perPage:    perPage,
@@ -236,6 +261,7 @@
           });
           params.append("cond[created_at::GTE]", start);
           params.append("cond[created_at::LTE]", end);
+          if (titleKw) params.append("cond[title::LIKE]", titleKw);
 
           var res  = await fetch(BASE_URL + "?" + params.toString(), {
             headers: {
@@ -256,8 +282,11 @@
           if (!items.length || allResults.length >= total) break;
           page++;
         }
-        setStatus("완료: 총 " + total + "건 중 " + allResults.length + "건 표시  (기간: " + start + " ~ " + end + ")",
+        var titleKwFinal = document.getElementById("inp-title").value.trim();
+        var statusExtra = titleKwFinal ? "  서비스명: \"" + titleKwFinal + "\"" : "";
+        setStatus("완료: 총 " + total + "건 중 " + allResults.length + "건 표시  (기간: " + start + " ~ " + end + ")" + statusExtra,
                   allResults.length.toLocaleString() + "건");
+        applyTitleFilter();
       } catch (e) {
         setStatus("오류가 발생했습니다.", "");
         alert("API 조회 중 오류:\n\n" + e.message);
@@ -331,6 +360,8 @@
 
     function onClear() {
       allResults = [];
+      titleFilter = "";
+      document.getElementById("inp-title").value = "";
       sortCol = null; sortAsc = true;
       document.querySelectorAll("#result-table thead th").forEach(function(t) {
         t.classList.remove("sort-asc","sort-desc");
