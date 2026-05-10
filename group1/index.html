@@ -5,25 +5,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Group1 - 수출 현황</title>
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
     .input-panel {
-      background: #dce3ec;
-      border-radius: 8px;
-      padding: 12px 16px;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
+      background: #dce3ec; border-radius: 8px; padding: 12px 16px;
+      margin-bottom: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
     }
     .input-panel label { font-size: 13px; color: #333; white-space: nowrap; }
     .input-panel input {
-      font-size: 13px;
-      width: 100px;
-      padding: 5px 8px;
-      border: 1px solid #b0bec5;
-      border-radius: 4px;
-      outline: none;
+      font-size: 13px; width: 100px; padding: 5px 8px;
+      border: 1px solid #b0bec5; border-radius: 4px; outline: none;
     }
     .input-panel input:focus { border-color: #1a6fc4; }
     .input-panel .hint { font-size: 11px; color: #666; flex-basis: 100%; margin-top: 2px; }
@@ -35,17 +26,43 @@
     #btn-search:hover:not(:disabled) { background: #145fa8; }
     #btn-search:disabled { background: #7ea8d4; cursor: default; }
     .status-bar {
-      display: flex; justify-content: space-between;
-      font-size: 12px; color: #555; background: #c8d5e3;
-      border-radius: 6px; padding: 5px 12px; margin-bottom: 10px;
+      display: flex; justify-content: space-between; font-size: 12px;
+      color: #555; background: #c8d5e3; border-radius: 6px;
+      padding: 5px 12px; margin-bottom: 12px;
     }
+
+    /* 분석 섹션 */
+    .analytics-panel {
+      background: #fff; border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 16px; margin-bottom: 12px;
+    }
+    .analytics-hdr {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+    }
+    .analytics-hdr h2 { margin: 0; font-size: 14px; color: #1a3c5e; }
+    .analytics-hdr .unit { font-size: 11px; color: #888; }
+    #cmp-table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+    #cmp-table th {
+      background: #2c5f9e; color: #fff; padding: 7px 10px;
+      text-align: center; white-space: nowrap;
+    }
+    #cmp-table td { padding: 6px 10px; border-bottom: 1px solid #e8edf3; white-space: nowrap; }
+    #cmp-table tbody tr:nth-child(odd) { background: #f7f9fc; }
+    #cmp-table tbody tr:hover { background: #ddeeff; }
+    #cmp-table td:first-child { text-align: left; font-weight: 600; color: #1a3c5e; }
+    #cmp-table td:not(:first-child) { text-align: right; }
+    .pos { color: #c0392b; font-weight: 700; }
+    .neg { color: #2471a3; font-weight: 700; }
+
+    /* 원시 데이터 테이블 */
+    .tbl-unit { text-align: right; font-size: 11px; color: #888; margin-bottom: 4px; }
     .table-wrap { overflow: auto; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
     #export-table { border-collapse: collapse; width: 100%; font-size: 12.5px; background: #fff; }
     #export-table thead th {
       background: #2c5f9e; color: #fff; padding: 8px 10px;
       text-align: center; white-space: nowrap;
-      cursor: pointer; user-select: none;
-      position: sticky; top: 0; z-index: 1;
+      cursor: pointer; user-select: none; position: sticky; top: 0; z-index: 1;
     }
     #export-table thead th:hover { background: #1a4f8e; }
     #export-table tbody tr:nth-child(odd)  { background: #f7f9fc; }
@@ -105,6 +122,38 @@
       <span id="lbl-count"></span>
     </div>
 
+    <!-- 분석 섹션: 최근 조회일자 기준 비교 -->
+    <div id="analytics-wrap" style="display:none">
+
+      <!-- 차트 -->
+      <div class="analytics-panel">
+        <div class="analytics-hdr">
+          <h2 id="analytics-title">비교 분석</h2>
+          <span class="unit">단위: 천 달러 (USD thousand) &nbsp;|&nbsp; 빨강=상승 / 파랑=하락</span>
+        </div>
+        <canvas id="change-chart" height="260"></canvas>
+      </div>
+
+      <!-- 비교 표 -->
+      <div class="analytics-panel" style="overflow:auto">
+        <table id="cmp-table">
+          <thead>
+            <tr>
+              <th>품목</th>
+              <th id="hdr-curr">최근값</th>
+              <th id="hdr-prev">전월값</th>
+              <th>전월대비</th>
+              <th id="hdr-yoy">전년동월값</th>
+              <th>전년동월대비</th>
+            </tr>
+          </thead>
+          <tbody id="cmp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 원시 데이터 테이블 -->
+    <div class="tbl-unit">단위: 천 달러 (USD thousand)</div>
     <div class="table-wrap">
       <table id="export-table">
         <thead>
@@ -133,84 +182,102 @@
   </main>
 
   <script>
-    const SERVICE_KEY =
+    var SERVICE_KEY =
       "Nv0jBnCHJXCT20iu910K/IGnF556Vt2w06icWR2uj66dF73AiTNBXaM7bIS9Nu9" +
       "C0cmB7sGVgpnbCiK01Qkgeg==";
-    const BASE_URL =
+    var BASE_URL =
       "https://apis.data.go.kr/1220000/prlstMmUtPrviExpAcrs/getPrlstMmUtPrviExpAcrs";
 
-    const COLS = [
+    var COLS = [
       "priodYear","priodMon","priodDt",
       "itemUsdAmt00","itemUsdAmt01","itemUsdAmt02","itemUsdAmt03",
       "itemUsdAmt04","itemUsdAmt05","itemUsdAmt06",
       "itemUsdAmt07","itemUsdAmt08","itemUsdAmt09","itemUsdAmt10"
     ];
-    const CENTER_COLS = new Set(["priodYear","priodMon","priodDt"]);
+    var CENTER_COLS = new Set(["priodYear","priodMon","priodDt"]);
 
-    let tableData = [];
-    let sortCol = null;
-    let sortAsc = true;
+    var ITEMS = [
+      { col: "itemUsdAmt00", label: "전체" },
+      { col: "itemUsdAmt01", label: "반도체" },
+      { col: "itemUsdAmt02", label: "철강제품" },
+      { col: "itemUsdAmt03", label: "승용차" },
+      { col: "itemUsdAmt04", label: "석유제품" },
+      { col: "itemUsdAmt05", label: "무선통신기기" },
+      { col: "itemUsdAmt06", label: "선박" },
+      { col: "itemUsdAmt07", label: "자동차부품" },
+      { col: "itemUsdAmt08", label: "컴퓨터주변기기" },
+      { col: "itemUsdAmt09", label: "정밀기기" },
+      { col: "itemUsdAmt10", label: "가전제품" }
+    ];
+
+    var tableData = [];
+    var sortCol = null;
+    var sortAsc = true;
+    var chartInst = null;
 
     // 헤더 클릭 이벤트 연결
-    document.querySelectorAll("#thead-row th").forEach(th => {
+    document.querySelectorAll("#thead-row th").forEach(function(th) {
       th.style.cursor = "pointer";
-      th.addEventListener("click", () => sortBy(th.dataset.col));
+      th.addEventListener("click", function() { sortBy(th.dataset.col); });
     });
 
-    // 한국 시간 기준 YYYYMM 반환
+    // KST 기준 YYYYMM 반환
     function toYYYYMM(date) {
-      const kst = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
-      const y = kst.getFullYear();
-      const m = String(kst.getMonth() + 1).padStart(2, "0");
-      return y + m;
+      var kst = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+      return String(kst.getFullYear()) + String(kst.getMonth() + 1).padStart(2, "0");
     }
 
-    // YYYYMM에서 n개월 이전 값 계산
+    // YYYYMM에서 n개월 이전
     function subtractMonths(yyyymm, n) {
-      const y = parseInt(yyyymm.slice(0, 4), 10);
-      const m = parseInt(yyyymm.slice(4, 6), 10) - 1; // 0-based
-      const d = new Date(y, m - n, 1);
+      var y = parseInt(yyyymm.slice(0, 4), 10);
+      var m = parseInt(yyyymm.slice(4, 6), 10) - 1;
+      var d = new Date(y, m - n, 1);
       return String(d.getFullYear()) + String(d.getMonth() + 1).padStart(2, "0");
+    }
+
+    // YYYYMM -> "YYYY년 M월"
+    function fmtMon(yyyymm) {
+      return yyyymm.slice(0, 4) + "년 " + parseInt(yyyymm.slice(4)) + "월";
     }
 
     // 페이지 로드 시 자동 날짜 설정 및 조회
     (function initAndSearch() {
-      const endYm   = toYYYYMM(new Date());
-      const startYm = subtractMonths(endYm, 25);
+      var endYm   = toYYYYMM(new Date());
+      var startYm = subtractMonths(endYm, 25);
       document.getElementById("inp-start").value = startYm;
       document.getElementById("inp-end").value   = endYm;
       doSearch();
     })();
 
     async function doSearch() {
-      const strt = document.getElementById("inp-start").value.trim();
-      const end  = document.getElementById("inp-end").value.trim();
+      var strt = document.getElementById("inp-start").value.trim();
+      var end  = document.getElementById("inp-end").value.trim();
       if (!/^\d{6}$/.test(strt)) { alert("시작 연월을 6자리 숫자로 입력하세요.\n예) 202504"); return; }
       if (!/^\d{6}$/.test(end))  { alert("종료 연월을 6자리 숫자로 입력하세요.\n예) 202604"); return; }
       if (strt > end)             { alert("시작 연월이 종료 연월보다 클 수 없습니다."); return; }
 
       setLoading(true);
-      setStatus('<span class="spinner"></span>데이터를 불러오는 중입니다...', '');
+      setStatus('<span class="spinner"></span>데이터를 불러오는 중입니다...', "");
 
       try {
-        const params = new URLSearchParams({
+        var params = new URLSearchParams({
           serviceKey: SERVICE_KEY,
           strtYymm: strt, endYymm: end,
           numOfRows: "500", pageNo: "1"
         });
-        const res  = await fetch(BASE_URL + "?" + params);
-        const text = await res.text();
-        const xml  = new DOMParser().parseFromString(text, "application/xml");
+        var res  = await fetch(BASE_URL + "?" + params);
+        var text = await res.text();
+        var xml  = new DOMParser().parseFromString(text, "application/xml");
 
-        const code = xml.querySelector("resultCode")?.textContent ?? "";
+        var code = xml.querySelector("resultCode") ? xml.querySelector("resultCode").textContent : "";
         if (code !== "00") {
-          const msg = xml.querySelector("resultMsg")?.textContent ?? "알 수 없는 오류";
+          var msg = xml.querySelector("resultMsg") ? xml.querySelector("resultMsg").textContent : "알 수 없는 오류";
           throw new Error("API 오류 [" + code + "]: " + msg);
         }
 
-        tableData = Array.from(xml.querySelectorAll("item")).map(item => {
-          const row = {};
-          for (const child of item.children) {
+        tableData = Array.from(xml.querySelectorAll("item")).map(function(item) {
+          var row = {};
+          for (var child of item.children) {
             row[child.localName] = (child.textContent || "").trim();
           }
           return row;
@@ -221,6 +288,7 @@
         }
 
         renderTable(tableData);
+        renderAnalytics(tableData);
         setStatus("조회 완료 — 시작: " + strt + "  종료: " + end,
                   "총 " + tableData.length.toLocaleString() + "건");
       } catch (e) {
@@ -232,43 +300,165 @@
     }
 
     function renderTable(rows) {
-      const tbody = document.getElementById("tbl-body");
+      var tbody = document.getElementById("tbl-body");
       if (!rows.length) {
         tbody.innerHTML = '<tr class="no-data"><td colspan="14">조회된 데이터가 없습니다.</td></tr>';
         return;
       }
-      tbody.innerHTML = rows.map(row =>
-        "<tr>" + COLS.map(col => {
-          const v = row[col] != null ? row[col] : "";
-          const cls = CENTER_COLS.has(col) ? ' class="center"' : "";
-          let display = v;
+      tbody.innerHTML = rows.map(function(row) {
+        return "<tr>" + COLS.map(function(col) {
+          var v = row[col] != null ? row[col] : "";
+          var cls = CENTER_COLS.has(col) ? ' class="center"' : "";
+          var display = v;
           if (col.startsWith("itemUsdAmt") && v !== "") {
-            const num = parseFloat(v.replace(/,/g, ""));
+            var num = parseFloat(v.replace(/,/g, ""));
             display = isNaN(num) ? v : num.toLocaleString();
           }
           return "<td" + cls + ">" + display + "</td>";
-        }).join("") + "</tr>"
-      ).join("");
+        }).join("") + "</tr>";
+      }).join("");
+    }
+
+    function renderAnalytics(rows) {
+      var wrap = document.getElementById("analytics-wrap");
+      if (!rows.length) { wrap.style.display = "none"; return; }
+
+      // 가장 최근 조회일자 행 찾기
+      var latestRow = null;
+      rows.forEach(function(row) {
+        if (!latestRow ||
+            row.priodMon > latestRow.priodMon ||
+            (row.priodMon === latestRow.priodMon && row.priodDt > latestRow.priodDt)) {
+          latestRow = row;
+        }
+      });
+
+      var latestMon = latestRow.priodMon;
+      var latestDt  = latestRow.priodDt;
+      var prevMon   = subtractMonths(latestMon, 1);
+      var yoyMon    = subtractMonths(latestMon, 12);
+
+      var prevRow = rows.find(function(r) { return r.priodMon === prevMon && r.priodDt === latestDt; }) || null;
+      var yoyRow  = rows.find(function(r) { return r.priodMon === yoyMon  && r.priodDt === latestDt; }) || null;
+
+      function getVal(row, col) {
+        if (!row) return null;
+        var v = row[col];
+        if (v == null || v === "") return null;
+        return parseFloat(v.replace(/,/g, ""));
+      }
+      function calcRate(curr, base) {
+        if (curr == null || base == null || base === 0) return null;
+        return (curr - base) / Math.abs(base) * 100;
+      }
+      function fmtNum(v) { return v == null ? "-" : Math.round(v).toLocaleString(); }
+      function fmtRate(v) {
+        if (v == null) return "-";
+        var sign = v >= 0 ? "+" : "";
+        var cls  = v >= 0 ? "pos" : "neg";
+        return "<span class='" + cls + "'>" + sign + v.toFixed(1) + "%</span>";
+      }
+
+      // 제목 및 헤더 갱신
+      document.getElementById("analytics-title").textContent =
+        fmtMon(latestMon) + " " + latestDt + " 기준 비교 분석";
+      document.getElementById("hdr-curr").textContent =
+        fmtMon(latestMon) + " (" + latestDt + ")";
+      document.getElementById("hdr-prev").textContent =
+        fmtMon(prevMon) + " (" + latestDt + ")";
+      document.getElementById("hdr-yoy").textContent =
+        fmtMon(yoyMon) + " (" + latestDt + ")";
+
+      // 증감률 계산
+      var momRates = ITEMS.map(function(item) {
+        return calcRate(getVal(latestRow, item.col), getVal(prevRow, item.col));
+      });
+      var yoyRates = ITEMS.map(function(item) {
+        return calcRate(getVal(latestRow, item.col), getVal(yoyRow, item.col));
+      });
+      var labels = ITEMS.map(function(i) { return i.label; });
+
+      // 차트 렌더링
+      var ctx = document.getElementById("change-chart").getContext("2d");
+      if (chartInst) { chartInst.destroy(); chartInst = null; }
+      chartInst = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "전월대비 (%)",
+              data: momRates.map(function(v) { return v != null ? parseFloat(v.toFixed(2)) : null; }),
+              backgroundColor: "rgba(26,111,196,0.75)",
+              borderColor:     "rgba(26,111,196,1)",
+              borderWidth: 1, borderRadius: 3
+            },
+            {
+              label: "전년동월대비 (%)",
+              data: yoyRates.map(function(v) { return v != null ? parseFloat(v.toFixed(2)) : null; }),
+              backgroundColor: "rgba(230,126,34,0.75)",
+              borderColor:     "rgba(230,126,34,1)",
+              borderWidth: 1, borderRadius: 3
+            }
+          ]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          plugins: {
+            legend: { position: "top" },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  var v = ctx.parsed.x;
+                  if (v == null) return ctx.dataset.label + ": N/A";
+                  return ctx.dataset.label + ": " + (v > 0 ? "+" : "") + v.toFixed(1) + "%";
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: "rgba(0,0,0,0.06)" },
+              ticks: {
+                callback: function(v) { return (v > 0 ? "+" : "") + v + "%"; }
+              }
+            },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+
+      // 비교 표 렌더링
+      document.getElementById("cmp-tbody").innerHTML = ITEMS.map(function(item) {
+        var curr = getVal(latestRow, item.col);
+        var prev = getVal(prevRow,   item.col);
+        var yoy  = getVal(yoyRow,    item.col);
+        return "<tr>" +
+          "<td>" + item.label + "</td>" +
+          "<td>" + fmtNum(curr) + "</td>" +
+          "<td>" + fmtNum(prev) + "</td>" +
+          "<td>" + fmtRate(calcRate(curr, prev)) + "</td>" +
+          "<td>" + fmtNum(yoy)  + "</td>" +
+          "<td>" + fmtRate(calcRate(curr, yoy))  + "</td>" +
+          "</tr>";
+      }).join("");
+
+      wrap.style.display = "block";
     }
 
     function sortBy(col) {
-      if (sortCol === col) {
-        sortAsc = !sortAsc;
-      } else {
-        sortCol = col;
-        sortAsc = true;
-      }
-      // 헤더 아이콘 갱신
-      document.querySelectorAll("#thead-row th").forEach(th => {
+      if (sortCol === col) { sortAsc = !sortAsc; } else { sortCol = col; sortAsc = true; }
+      document.querySelectorAll("#thead-row th").forEach(function(th) {
         th.classList.remove("sort-asc", "sort-desc");
         if (th.dataset.col === col) {
           th.classList.add(sortAsc ? "sort-asc" : "sort-desc");
         }
       });
-      const sorted = [...tableData].sort((a, b) => {
-        const va = (a[col] || "").replace(/,/g, "");
-        const vb = (b[col] || "").replace(/,/g, "");
-        const na = parseFloat(va), nb = parseFloat(vb);
+      var sorted = tableData.slice().sort(function(a, b) {
+        var va = (a[col] || "").replace(/,/g, "");
+        var vb = (b[col] || "").replace(/,/g, "");
+        var na = parseFloat(va), nb = parseFloat(vb);
         if (!isNaN(na) && !isNaN(nb)) return sortAsc ? na - nb : nb - na;
         return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
       });
@@ -276,7 +466,7 @@
     }
 
     function setLoading(on) {
-      const btn = document.getElementById("btn-search");
+      var btn = document.getElementById("btn-search");
       btn.disabled = on;
       btn.textContent = on ? "조회 중..." : "조 회";
     }
