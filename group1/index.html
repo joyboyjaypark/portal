@@ -200,6 +200,7 @@
     var itemCharts = {};   // col -> Chart instance
     var FETCH_N    = 37;   // API 조회 개월 수 (Data 탭)
     var TREND_N    = 25;   // 그래프·비교표 표시 개월 수
+    var latestInfo = null; // { mon, dt, mm } — renderTable 하이라이트용
 
     // ── KST 유틸 ─────────────────────────────────────────────────
     function toYYYYMM(date) {
@@ -308,6 +309,13 @@
       latestMonRows.sort(function(a, b) { return a.priodDt.localeCompare(b.priodDt); });
       var latestIdx = latestMonRows.findIndex(function(r) { return r.priodDt === latestDt; });
       if (latestIdx < 0) latestIdx = latestMonRows.length - 1;
+
+      // latestInfo 저장 (Data 탭 하이라이트용)
+      latestInfo = {
+        mon: latestMon,
+        dt:  latestDt,
+        mm:  latestMon.slice(4)   // "04" 등 월 부분
+      };
 
       // 표시할 TREND_N 개월 목록 (최신월 포함, 오름차순)
       var months = [];
@@ -430,6 +438,21 @@
       var momData = trend.map(function(d) { return d.momRate != null ? parseFloat(d.momRate.toFixed(2)) : null; });
       var yoyData = trend.map(function(d) { return d.yoyRate != null ? parseFloat(d.yoyRate.toFixed(2)) : null; });
 
+      // 막대 색상: 연도 그룹별 농도 (최신=진하게, 12개월전=중간, 24개월전=흐리게)
+      // months 배열은 오름차순(oldest→latest), 인덱스 TREND_N-1 이 최신
+      var barBg  = trend.map(function(d, i) {
+        var distFromLatest = (TREND_N - 1) - i;          // 0=latest, 12=1년전, 24=2년전
+        var yearGroup      = Math.floor(distFromLatest / 12); // 0,1,2...
+        var alpha = Math.max(0.12, 0.80 - yearGroup * 0.28); // 0.80 / 0.52 / 0.24
+        return "rgba(44,95,158," + alpha + ")";
+      });
+      var barBorder = trend.map(function(d, i) {
+        var distFromLatest = (TREND_N - 1) - i;
+        var yearGroup      = Math.floor(distFromLatest / 12);
+        var alpha = Math.max(0.20, 0.95 - yearGroup * 0.30);
+        return "rgba(44,95,158," + alpha + ")";
+      });
+
       // 혼합 차트: 막대=금액(좌축), 선=증감률(우축)
       var ctx = document.getElementById("chart-" + col).getContext("2d");
       itemCharts[col] = new Chart(ctx, {
@@ -440,8 +463,8 @@
               type: "bar",
               label: "금액 (천달러)",
               data: valData,
-              backgroundColor: "rgba(44,95,158,0.22)",
-              borderColor:     "rgba(44,95,158,0.55)",
+              backgroundColor: barBg,
+              borderColor:     barBorder,
               borderWidth: 1,
               yAxisID: "yVal",
               order: 3
@@ -534,8 +557,15 @@
         tbody.innerHTML = '<tr class="no-data"><td colspan="14">조회된 데이터가 없습니다.</td></tr>';
         return;
       }
+      // 동기 행 판단: 최신 데이터의 월(MM)과 priodDt가 동일한 행 → 빨간 음영
+      var latestMM = latestInfo ? latestInfo.mm : null;
+      var latestDt = latestInfo ? latestInfo.dt : null;
       tbody.innerHTML = rows.map(function(row) {
-        return "<tr>" + COLS.map(function(col) {
+        var isSamePeriod = latestMM && latestDt &&
+                           row.priodMon && row.priodMon.slice(4) === latestMM &&
+                           row.priodDt  === latestDt;
+        var rowStyle = isSamePeriod ? ' style="background:#fde8e8"' : "";
+        return "<tr" + rowStyle + ">" + COLS.map(function(col) {
           var v       = row[col] != null ? row[col] : "";
           var cls     = CENTER_COLS.has(col) ? ' class="center"' : "";
           var display = v;
