@@ -157,6 +157,31 @@
       th.addEventListener("click", () => sortBy(th.dataset.col));
     });
 
+    // 한국 시간 기준 YYYYMM 반환
+    function toYYYYMM(date) {
+      const kst = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+      const y = kst.getFullYear();
+      const m = String(kst.getMonth() + 1).padStart(2, "0");
+      return y + m;
+    }
+
+    // YYYYMM에서 n개월 이전 값 계산
+    function subtractMonths(yyyymm, n) {
+      const y = parseInt(yyyymm.slice(0, 4), 10);
+      const m = parseInt(yyyymm.slice(4, 6), 10) - 1; // 0-based
+      const d = new Date(y, m - n, 1);
+      return String(d.getFullYear()) + String(d.getMonth() + 1).padStart(2, "0");
+    }
+
+    // 페이지 로드 시 자동 날짜 설정 및 조회
+    (function initAndSearch() {
+      const endYm   = toYYYYMM(new Date());
+      const startYm = subtractMonths(endYm, 25);
+      document.getElementById("inp-start").value = startYm;
+      document.getElementById("inp-end").value   = endYm;
+      doSearch();
+    })();
+
     async function doSearch() {
       const strt = document.getElementById("inp-start").value.trim();
       const end  = document.getElementById("inp-end").value.trim();
