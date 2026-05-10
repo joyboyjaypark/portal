@@ -536,10 +536,15 @@
       });
 
       // 추이 테이블 렌더
+      var latestMM = latestMon.slice(4); // 최신 월의 MM (예: "04")
       var tbody = document.querySelector("#tbl-" + col + " tbody");
       tbody.innerHTML = trend.map(function(d) {
-        var isLatest = d.mon === latestMon;
-        return "<tr" + (isLatest ? ' class="latest-row"' : "") + ">" +
+        var isLatest    = d.mon === latestMon;
+        var isSamePeriod = !isLatest && d.mon.slice(4) === latestMM;
+        var rowAttr = isLatest    ? ' class="latest-row"'
+                    : isSamePeriod ? ' style="background:#fde8e8"'
+                    : "";
+        return "<tr" + rowAttr + ">" +
           "<td>" + fmtMon(d.mon) + "</td>" +
           "<td>" + (d.priodDt || "-") + "</td>" +
           "<td>" + fmtNum(d.val) + "</td>" +
