@@ -338,8 +338,23 @@
       var prevMon   = subtractMonths(latestMon, 1);
       var yoyMon    = subtractMonths(latestMon, 12);
 
-      var prevRow = rows.find(function(r) { return r.priodMon === prevMon && r.priodDt === latestDt; }) || null;
-      var yoyRow  = rows.find(function(r) { return r.priodMon === yoyMon  && r.priodDt === latestDt; }) || null;
+      // 최신행의 순번(1번째=1~10, 2번째=1~20, 3번째=말일)을 구하고,
+      // 대상 월에서 같은 순번의 행을 가져옴 (말일 날짜가 달라도 대응)
+      function nthRowOfMonth(mon, nthIndex) {
+        var monthRows = rows.filter(function(r) { return r.priodMon === mon; });
+        // priodDt 오름차순 정렬 (1~10 < 1~20 < 1~28/30/31)
+        monthRows.sort(function(a, b) { return a.priodDt.localeCompare(b.priodDt); });
+        return monthRows[nthIndex] || null;
+      }
+
+      // 최신월에서 latestRow의 순번 파악
+      var latestMonRows = rows.filter(function(r) { return r.priodMon === latestMon; });
+      latestMonRows.sort(function(a, b) { return a.priodDt.localeCompare(b.priodDt); });
+      var latestIdx = latestMonRows.findIndex(function(r) { return r.priodDt === latestDt; });
+      if (latestIdx < 0) latestIdx = latestMonRows.length - 1;
+
+      var prevRow = nthRowOfMonth(prevMon, latestIdx);
+      var yoyRow  = nthRowOfMonth(yoyMon,  latestIdx);
 
       function getVal(row, col) {
         if (!row) return null;
@@ -359,15 +374,17 @@
         return "<span class='" + cls + "'>" + sign + v.toFixed(1) + "%</span>";
       }
 
-      // 제목 및 헤더 갱신
+      // 제목 및 헤더 갱신 (각 월의 실제 priodDt 사용)
+      var prevDt = prevRow ? prevRow.priodDt : "-";
+      var yoyDt  = yoyRow  ? yoyRow.priodDt  : "-";
       document.getElementById("analytics-title").textContent =
         fmtMon(latestMon) + " " + latestDt + " 기준 비교 분석";
       document.getElementById("hdr-curr").textContent =
         fmtMon(latestMon) + " (" + latestDt + ")";
       document.getElementById("hdr-prev").textContent =
-        fmtMon(prevMon) + " (" + latestDt + ")";
+        fmtMon(prevMon) + " (" + prevDt + ")";
       document.getElementById("hdr-yoy").textContent =
-        fmtMon(yoyMon) + " (" + latestDt + ")";
+        fmtMon(yoyMon) + " (" + yoyDt + ")";
 
       // 증감률 계산
       var momRates = ITEMS.map(function(item) {
